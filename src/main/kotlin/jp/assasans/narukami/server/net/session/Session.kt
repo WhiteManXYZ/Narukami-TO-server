@@ -19,6 +19,7 @@
 package jp.assasans.narukami.server.net.session
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.client.UserEquipment
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.IGameObject
@@ -37,62 +38,62 @@ import jp.assasans.narukami.server.net.SpaceChannel
  * @see jp.assasans.narukami.server.core.ArchitectureDocs
  */
 interface ISession {
-  val hash: SessionHash
-  val properties: Map<String, String>
-  val controlChannel: ControlChannel
+    val hash: SessionHash
+    val properties: Map<String, String>
+    val controlChannel: ControlChannel
 
-  val spaces: IRegistry<SpaceChannel>
-  val pendingSpaces: IRegistry<IPending<SpaceChannel>>
+    val spaces: IRegistry<SpaceChannel>
+    val pendingSpaces: IRegistry<IPending<SpaceChannel>>
 
-  var user: IGameObject?
+    var user: IGameObject?
 
-  suspend fun close()
+    suspend fun close()
 }
 
 val ISession.userNotNull: IGameObject
-  get() = checkNotNull(user) { "User is null for $this" }
+    get() = checkNotNull(user) { "User is null for $this" }
 
 class Session(
-  override val hash: SessionHash,
-  override val properties: Map<String, String>,
-  override val controlChannel: ControlChannel
+    override val hash: SessionHash,
+    override val properties: Map<String, String>,
+    override val controlChannel: ControlChannel
 ) : ISession, KoinComponent {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  override val spaces: IRegistry<SpaceChannel> = Registry("Space channel") { space.id }
-  override val pendingSpaces: IRegistry<IPending<SpaceChannel>> = Registry("Pending space channel") { id }
+    override val spaces: IRegistry<SpaceChannel> = Registry("Space channel") { space.id }
+    override val pendingSpaces: IRegistry<IPending<SpaceChannel>> = Registry("Pending space channel") { id }
 
-  override var user: IGameObject? = null
+    override var user: IGameObject? = null
 
-  private var open: Boolean = true
+    private var open: Boolean = true
 
-  private val sessions: ISessionRegistry by inject()
+    private val sessions: ISessionRegistry by inject()
 
-  override suspend fun close() {
-    if(!open) return
-    open = false
+    override suspend fun close() {
+        if (!open) return
+        open = false
 
-    logger.trace { "Closing $this" }
+        logger.trace { "Closing $this" }
 
-    val user = user
-    if(user != null) {
-      val lobbyChannel = checkNotNull(spaces.get(Space.stableId("lobby"))) {
-        "Lobby channel not found for $this"
-      }
-      lobbyChannel.space.objects.remove(user)
-      this.user = null
+        val user = user
+        if (user != null) {
+            val lobbyChannel = checkNotNull(spaces.get(Space.stableId("lobby"))) {
+                "Lobby channel not found for $this"
+            }
+            lobbyChannel.space.objects.remove(user)
+            this.user = null
+        }
+
+        for (channel in spaces.all) {
+            channel.close()
+        }
+        controlChannel.socket.close()
+
+        sessions.remove(this)
+        logger.info { "Closed $this" }
     }
 
-    for(channel in spaces.all) {
-      channel.close()
+    override fun toString(): String {
+        return "Session(hash=$hash, controlChannel=$controlChannel)"
     }
-    controlChannel.socket.close()
-
-    sessions.remove(this)
-    logger.info { "Closed $this" }
-  }
-
-  override fun toString(): String {
-    return "Session(hash=$hash, controlChannel=$controlChannel)"
-  }
 }

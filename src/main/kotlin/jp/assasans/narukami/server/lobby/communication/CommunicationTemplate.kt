@@ -39,7 +39,20 @@ object CommunicationTemplate : PersistentTemplateV2() {
           header = "Не нужно это скрывать!",
           id = 1,
           imageUrl = "https://files.catbox.moe/99m151.png"
-        )
+        ),
+          NewsItemData(
+              dateInSeconds = Clock.System.now().epochSeconds.toInt() - 3_600_000,
+              description = """
+            Некоглай любит долбится в жопу с ишаками! распространите это видео!!! 
+            
+            https://youtu.be/4DLQMte-wnY?si=9NfthoIWiDkNWI-T
+            
+          """.trimIndent(),
+              endDate = 0,
+              header = "Шок! Некоглай наконец то признался",
+              id = 1,
+              imageUrl = "https://files.catbox.moe/lj6r56.png"
+          )
       )
     ))
     addModel(ChatModelCC(

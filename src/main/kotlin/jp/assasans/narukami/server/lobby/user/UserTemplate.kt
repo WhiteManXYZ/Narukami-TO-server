@@ -36,11 +36,11 @@ object UserTemplate : PersistentTemplateV2() {
         crystalsRating = 0,
         daysFromLastVisit = 0,
         daysFromRegistration = 0,
-        gearScore = 0,
+        gearScore = 1488,
         goldsTakenRating = 0,
         hasSpectatorPermissions = true,
         id = user.userGroup.key,
-        rank = 1,
+        rank = 4,
         rankBounds = RankBounds(lowBound = user.score.score / 2, topBound = user.score.score * 2),
         registrationTimestamp = 10,
         score = user.score.score,
@@ -52,7 +52,7 @@ object UserTemplate : PersistentTemplateV2() {
     })
     addModel(ClosureModelProvider { UserNotifierModelCC(currentUserId = it.id) })
     addModel(ClosureModelProvider { UidNotifierModelCC(uid = it.getComponent<UsernameComponent>().username, userId = it.id) })
-    addModel(ClosureModelProvider { RankNotifierModelCC(rank = 1, userId = it.id) })
+    addModel(ClosureModelProvider { RankNotifierModelCC(rank = 4, userId = it.id) })
     addModel(ClosureModelProvider { ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt()) })
     addModel(OnlineNotifierModelCC())
   }

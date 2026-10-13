@@ -124,16 +124,16 @@ class LobbySystem : AbstractSystem() {
     @JoinAll battleSelect: BattleSelectNodeV2,
     @JoinAll battles: List<BattleInfoNodeV2>,
   ) = context {
-    LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.GARAGE).schedule(lobby)
-    LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.GARAGE, LayoutState.GARAGE).schedule(lobby)
+      LobbyLayoutNotifyModelBeginLayoutSwitchEvent(LayoutState.GARAGE).schedule(lobby)
 
-    DispatcherUnloadObjectsManagedEvent(
-      listOf(
-        battleSelect.gameObject
-      ) + battles.gameObjects
-    ).schedule(dispatcher)
+      DispatcherUnloadObjectsManagedEvent(
+          listOf(
+              battleSelect.gameObject
+          ) + battles.gameObjects
+      ).schedule(dispatcher)
 
-    DispatcherOpenSpaceEvent(Space.stableId("garage")).schedule(dispatcher).await()
+      DispatcherOpenSpaceEvent(Space.stableId("garage")).schedule(dispatcher).await()
+      LobbyLayoutNotifyModelEndLayoutSwitchEvent(LayoutState.GARAGE, LayoutState.GARAGE).schedule(lobby)
   }
 
   @OnEventFireV2

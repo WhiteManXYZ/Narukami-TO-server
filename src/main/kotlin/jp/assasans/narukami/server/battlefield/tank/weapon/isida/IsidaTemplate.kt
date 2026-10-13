@@ -52,7 +52,7 @@ object IsidaTemplate : WeaponTemplate(), KoinComponent {
     )
     addModel(
       IsisModelCC(
-        capacity = 1000.0f,
+        capacity = 100.0f,
         chargeRate = 100.0f,
         checkPeriodMsec = 250,
         coneAngle = 30.0f.toRadians(),
