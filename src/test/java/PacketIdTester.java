@@ -3,7 +3,7 @@ public class PacketIdTester {
 
     public static void main(String[] args) {
 
-        test(290381668,-2011787495);
+        test(317093744711721659L);
     }
 
     public static void test(long high, long low) {

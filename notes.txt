@@ -1,0 +1,20 @@
+## Типы событий
+
+- IServerEvent - клиент к серверу. Клиент вызывает server.method(), сервер ловит @OnEventFireV2
+- IClientEvent - сервер к клиенту. Сервер вызывает .schedule(...), клиент ловит в *ModelBase.invoke()
+- IEvent - внутреннее серверное. Не идёт по сети. Для развязки систем (DamageEvent, NodeAddedEvent)
+
+## schedule
+
+- .schedule(node) - objectId = node.gameObject.id, всем space channel где объект есть
+- .schedule(context, obj) - конкретный контекст + objectId = obj.id
+- .schedule(node, shared - ctx) - всем, кроме инициатора
+
+Клиент ищет модель НА ЭТОМ объекте. Если модели там нет - тихо игнорирует
+Не путать schedule(dispatcher) с schedule(weapon): RocketLauncherModel на weapon, не на dispatcher
+
+## Направления (частые ошибки)
+
+- IServerEvent НЕ отправляется сервером
+- IClientEvent НЕ отправляется клиентом
+- Если что-то "не работает без ошибок" - скорее всего, событие ушло не туда или не сматчилось по ноде

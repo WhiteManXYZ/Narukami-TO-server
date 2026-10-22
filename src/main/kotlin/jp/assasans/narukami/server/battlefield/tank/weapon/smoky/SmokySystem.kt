@@ -20,6 +20,8 @@ package jp.assasans.narukami.server.battlefield.tank.weapon.smoky
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battlefield.TankNodeV2
+import jp.assasans.narukami.server.battlefield.damage.DamageEvent
+import jp.assasans.narukami.server.battlefield.tank.DamageType
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.communication.remote
@@ -28,63 +30,70 @@ import jp.assasans.narukami.server.lobby.communication.remote
 class SmokyNode : NodeV2()
 
 class SmokySystem : AbstractSystem() {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  @OnEventFireV2
-  fun fire(
-    context: IModelContext,
-    event: SmokyModelFireCommandEvent,
-    smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
-  ) = context {
-    val smokyShared = remote(smoky)
+    @OnEventFireV2
+    fun fire(
+        context: IModelContext,
+        event: SmokyModelFireCommandEvent,
+        smoky: SmokyNode,
+        @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+    ) = context {
+        val smokyShared = remote(smoky)
 
-    logger.trace { "Fire: $event" }
+        logger.trace { "Fire: $event" }
 
-    SmokyModelShootEvent(
-      shooterId = tank.gameObject.id,
-    ).schedule(smoky, smokyShared - context)
-  }
+        SmokyModelShootEvent(
+            shooterId = tank.gameObject.id,
+        ).schedule(smoky, smokyShared - context)
+    }
 
-  @OnEventFireV2
-  fun fireStatic(
-    context: IModelContext,
-    event: SmokyModelFireStaticCommandEvent,
-    smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
-    @PerChannel smokyShared: List<SmokyNode>,
-  ) = context {
-    val smokyShared = remote(smoky)
+    @OnEventFireV2
+    fun fireStatic(
+        context: IModelContext,
+        event: SmokyModelFireStaticCommandEvent,
+        smoky: SmokyNode,
+        @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+        @PerChannel smokyShared: List<SmokyNode>,
+    ) = context {
+        val smokyShared = remote(smoky)
 
-    logger.trace { "Fire static: $event" }
+        logger.trace { "Fire static: $event" }
 
-    SmokyModelShootStaticEvent(
-      shooterId = tank.gameObject.id,
-      hitPoint = event.hitPoint,
-    ).schedule(smoky, smokyShared - context)
-  }
+        SmokyModelShootStaticEvent(
+            shooterId = tank.gameObject.id,
+            hitPoint = event.hitPoint,
+        ).schedule(smoky, smokyShared - context)
+    }
 
-  @OnEventFireV2
-  fun fireTarget(
-    context: IModelContext,
-    event: SmokyModelFireTargetCommandEvent,
-    smoky: SmokyNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
-  ) = context {
-    val smokyShared = remote(smoky)
+    @OnEventFireV2
+    fun fireTarget(
+        context: IModelContext,
+        event: SmokyModelFireTargetCommandEvent,
+        smoky: SmokyNode,
+        @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+    ) = context {
+        val smokyShared = remote(smoky)
 
-    logger.trace { "Fire target: $event" }
+        logger.trace { "Fire target: $event" }
 
-    SmokyModelShootTargetEvent(
-      shooterId = tank.gameObject.id,
-      targetId = event.targetId,
-      hitPoint = event.hitPoint,
-      weakeningCoeff = 1f,
-      isCritical = true,
-    ).schedule(smoky, smokyShared - context)
+        SmokyModelShootTargetEvent(
+            shooterId = tank.gameObject.id,
+            targetId = event.targetId,
+            hitPoint = event.hitPoint,
+            weakeningCoeff = 1f,
+            isCritical = true,
+        ).schedule(smoky, smokyShared - context)
 
-    SmokyModelLocalCriticalHitEvent(
-      targetId = event.targetId,
-    ).schedule(smoky)
-  }
+        SmokyModelLocalCriticalHitEvent(
+            targetId = event.targetId,
+        ).schedule(smoky)
+
+        // TODO rewrite it?
+        val targetObj = context.space.objects.get(event.targetId)
+        if (targetObj != null)
+            DamageEvent(amount = 50f, source = tank.gameObject, type = DamageType.SMOKY).schedule(context, targetObj)
+        else
+            logger.warn { "Deal damage to unexisting object" }
+    }
 }

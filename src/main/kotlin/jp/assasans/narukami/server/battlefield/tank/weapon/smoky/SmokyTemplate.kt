@@ -24,6 +24,7 @@ import jp.assasans.narukami.server.battlefield.LightEffectItem
 import jp.assasans.narukami.server.battlefield.LightingEffectEntity
 import jp.assasans.narukami.server.battlefield.LightingSFXEntity
 import jp.assasans.narukami.server.battlefield.tank.weapon.*
+import jp.assasans.narukami.server.battlefield.tank.weapon.splash.SplashModel
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.addModel
 import jp.assasans.narukami.server.core.getComponent
@@ -55,12 +56,14 @@ object SmokyTemplate : WeaponTemplate(), KoinComponent {
       angleDown = 0.2f,
       angleUp = 0.2f
     ))
-    addModel(SplashModel(
-      impactForce = 100f,
-      minSplashDamagePercent = 5f,
-      radiusOfMaxSplashDamage = 100f,
-      splashDamageRadius = 1000f,
-    ))
+    addModel(
+        SplashModel(
+            impactForce = 100f,
+            minSplashDamagePercent = 5f,
+            radiusOfMaxSplashDamage = 100f,
+            splashDamageRadius = 1000f,
+        )
+    )
     addModel(SmokyModelCC())
     addModel(SmokyShootSFXModelCC(
       criticalHitSize = 300, // Estimated value, reference: https://www.youtube.com/watch?v=U6OntcEwsX0

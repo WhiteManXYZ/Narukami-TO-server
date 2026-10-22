@@ -22,21 +22,28 @@ import jp.assasans.narukami.server.core.ClosureModelProvider
 import jp.assasans.narukami.server.core.PersistentTemplateV2
 import jp.assasans.narukami.server.core.addModel
 import jp.assasans.narukami.server.core.requireSpaceChannel
+import jp.assasans.narukami.server.lobby.settings.SettingsWindowModelCC
+import jp.assasans.narukami.server.lobby.user.ServerCaptchaModelCC
+import jp.assasans.narukami.server.lobby.user.UserEmailAndPasswordModelCC
 import jp.assasans.narukami.server.net.sessionNotNull
 
 object LobbyTemplate : PersistentTemplateV2() {
-  override fun instantiate(id: Long) = gameObject(id).apply {
-    addModel(LobbyLayoutNotifyModelCC())
-    addModel(LobbyLayoutModelCC())
-    addModel(PanelModelCC())
-    addModel(OnceADayActionModelCC(todayRestartTime = 0))
-    addModel(ClosureModelProvider {
-      val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
-      ReconnectModelCC(
-        configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"] ?: "$configPublicUrl/config.xml",
-        serverNumber = 1,
-      )
-    })
-    addModel(GPUDetectorModelCC())
-  }
+    override fun instantiate(id: Long) = gameObject(id).apply {
+        addModel(LobbyLayoutNotifyModelCC())
+        addModel(LobbyLayoutModelCC())
+        addModel(UserEmailAndPasswordModelCC(email = "", emailConfirmed = false))
+        addModel(ServerCaptchaModelCC(stateWithCaptcha = emptyList()))
+        addModel(PanelModelCC())
+        addModel(OnceADayActionModelCC(todayRestartTime = 0))
+        addModel(ClosureModelProvider {
+            val configPublicUrl = System.getProperty("config.url") ?: error("\"config.url\" system property is not set")
+            ReconnectModelCC(
+                configUrlTemplate = requireSpaceChannel.sessionNotNull.properties["config"]
+                    ?: "$configPublicUrl/config.xml",
+                serverNumber = 1,
+            )
+        })
+        addModel(GPUDetectorModelCC())
+        addModel(SettingsWindowModelCC())
+    }
 }

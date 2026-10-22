@@ -38,7 +38,10 @@ import jp.assasans.narukami.server.dispatcher.DispatcherMutexComponent
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.dispatcher.preloadResources
 import jp.assasans.narukami.server.extensions.roundToNearest
+import jp.assasans.narukami.server.garage.UserEquipmentComponent
 import jp.assasans.narukami.server.lobby.CrystalsComponent
+import jp.assasans.narukami.server.lobby.LayoutState
+import jp.assasans.narukami.server.lobby.LayoutStateComponent
 import jp.assasans.narukami.server.lobby.ScoreComponent
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.user.UserTemplate
@@ -48,148 +51,159 @@ import jp.assasans.narukami.server.res.LocalizedImageRes
 import jp.assasans.narukami.server.res.RemoteGameResourceRepository
 
 data class EntranceNode(
-  val entrance: EntranceModelCC,
+    val entrance: EntranceModelCC,
 ) : Node()
 
 class KClassSerializer : JsonSerializer<KClass<*>>() {
-  override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
-    generator.writeString(value.jvmName)
-  }
+    override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
+        generator.writeString(value.jvmName)
+    }
 }
 
 class KClassKeySerializer : JsonSerializer<KClass<*>>() {
-  override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
-    generator.writeFieldName(value.jvmName)
-  }
+    override fun serialize(value: KClass<*>, generator: JsonGenerator, serializers: SerializerProvider) {
+        generator.writeFieldName(value.jvmName)
+    }
 }
 
 class ComponentMapSerializer : JsonSerializer<Map<KClass<out IComponent>, IComponent>>() {
-  override fun serialize(value: Map<KClass<out IComponent>, IComponent>, generator: JsonGenerator, serializers: SerializerProvider) {
-    generator.writeStartObject()
-    for((key, component) in value) {
-      generator.writeObjectField(key.jvmName, component)
+    override fun serialize(
+        value: Map<KClass<out IComponent>, IComponent>,
+        generator: JsonGenerator,
+        serializers: SerializerProvider
+    ) {
+        generator.writeStartObject()
+        for ((key, component) in value) {
+            generator.writeObjectField(key.jvmName, component)
+        }
+        generator.writeEndObject()
     }
-    generator.writeEndObject()
-  }
 }
 
 class ComponentMapDeserializer : JsonDeserializer<Map<KClass<out IComponent>, IComponent>>() {
-  override fun deserialize(parser: JsonParser, context: DeserializationContext): Map<KClass<out IComponent>, IComponent> {
-    val components = mutableMapOf<KClass<out IComponent>, IComponent>()
+    override fun deserialize(
+        parser: JsonParser,
+        context: DeserializationContext
+    ): Map<KClass<out IComponent>, IComponent> {
+        val components = mutableMapOf<KClass<out IComponent>, IComponent>()
 
-    val mapper = parser.codec as ObjectMapper
-    val node = mapper.readTree<ObjectNode>(parser)
-    for((key, value) in node.fields()) {
-      val clazz = try {
-        Class.forName(key).kotlin
-      } catch(exception: ClassNotFoundException) {
-        throw IllegalArgumentException("Class '$key' not found", exception)
-      }
-      if(!clazz.isSubclassOf(IComponent::class)) {
-        throw IllegalArgumentException("Class '$key' is not a component")
-      }
-      @Suppress("UNCHECKED_CAST")
-      clazz as KClass<out IComponent>
+        val mapper = parser.codec as ObjectMapper
+        val node = mapper.readTree<ObjectNode>(parser)
+        for ((key, value) in node.fields()) {
+            val clazz = try {
+                Class.forName(key).kotlin
+            } catch (exception: ClassNotFoundException) {
+                throw IllegalArgumentException("Class '$key' not found", exception)
+            }
+            if (!clazz.isSubclassOf(IComponent::class)) {
+                throw IllegalArgumentException("Class '$key' is not a component")
+            }
+            @Suppress("UNCHECKED_CAST")
+            clazz as KClass<out IComponent>
 
-      val jacksonType = context.typeFactory.constructType(clazz.java)
-      val deserializer = context.findRootValueDeserializer(jacksonType)
-      val nodeParser = value.traverse(context.parser.codec)
-      nodeParser.nextToken()
+            val jacksonType = context.typeFactory.constructType(clazz.java)
+            val deserializer = context.findRootValueDeserializer(jacksonType)
+            val nodeParser = value.traverse(context.parser.codec)
+            nodeParser.nextToken()
 
-      val component = deserializer.deserialize(nodeParser, context) as IComponent
-      components[clazz] = component
+            val component = deserializer.deserialize(nodeParser, context) as IComponent
+            components[clazz] = component
+        }
+
+        return components
     }
-
-    return components
-  }
 }
 
 class TemplateV2Serializer : JsonSerializer<TemplateV2>() {
-  override fun serialize(value: TemplateV2, generator: JsonGenerator, serializers: SerializerProvider) {
-    generator.writeString(value::class.jvmName)
-  }
+    override fun serialize(value: TemplateV2, generator: JsonGenerator, serializers: SerializerProvider) {
+        generator.writeString(value::class.jvmName)
+    }
 }
 
 class TemplateV2Deserializer : JsonDeserializer<TemplateV2>() {
-  override fun deserialize(parser: JsonParser, context: DeserializationContext): TemplateV2 {
-    val className = parser.valueAsString
-    try {
-      val clazz = Class.forName(className).kotlin
-      if(!clazz.isSubclassOf(TemplateV2::class)) {
-        throw IllegalArgumentException("Class '$className' is not a TemplateV2")
-      }
-      @Suppress("UNCHECKED_CAST")
-      clazz as KClass<out TemplateV2>
+    override fun deserialize(parser: JsonParser, context: DeserializationContext): TemplateV2 {
+        val className = parser.valueAsString
+        try {
+            val clazz = Class.forName(className).kotlin
+            if (!clazz.isSubclassOf(TemplateV2::class)) {
+                throw IllegalArgumentException("Class '$className' is not a TemplateV2")
+            }
+            @Suppress("UNCHECKED_CAST")
+            clazz as KClass<out TemplateV2>
 
-      return clazz.objectInstance ?: throw IllegalArgumentException("Class '$className' is not an object declaration")
-    } catch(exception: ClassNotFoundException) {
-      throw IllegalArgumentException("Class '$className' not found", exception)
+            return clazz.objectInstance
+                ?: throw IllegalArgumentException("Class '$className' is not an object declaration")
+        } catch (exception: ClassNotFoundException) {
+            throw IllegalArgumentException("Class '$className' not found", exception)
+        }
     }
-  }
 }
 
 data class ExternGameObject(
-  val id: Long,
-  val template: PersistentTemplateV2,
-  @field:JsonSerialize(using = ComponentMapSerializer::class)
-  val components: Map<KClass<out IComponent>, IComponent>,
+    val id: Long,
+    val template: PersistentTemplateV2,
+    @field:JsonSerialize(using = ComponentMapSerializer::class)
+    val components: Map<KClass<out IComponent>, IComponent>,
 )
 
 data class DispatcherNodeV2(
-  val dispatcherMutex: DispatcherMutexComponent,
+    val dispatcherMutex: DispatcherMutexComponent,
 ) : NodeV2()
 
 @MatchTemplate(EntranceTemplate::class)
 class EntranceNodeV2 : NodeV2()
 
 class LoginSystem : AbstractSystem(), KoinComponent {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  private val gameResourceRepository: RemoteGameResourceRepository by inject()
+    private val gameResourceRepository: RemoteGameResourceRepository by inject()
 
-  @OnEventFireV2
-  @OutOfOrderExecution
-  suspend fun login(
-    context: IModelContext,
-    event: LoginModelLoginEvent,
-    entrance: EntranceNodeV2,
-    @JoinAll dispatcher: DispatcherNodeV2,
-  ) = context {
-    logger.info { "Login event: $event" }
+    @OnEventFireV2
+    @OutOfOrderExecution
+    suspend fun login(
+        context: IModelContext,
+        event: LoginModelLoginEvent,
+        entrance: EntranceNodeV2,
+        @JoinAll dispatcher: DispatcherNodeV2,
+    ) = context {
+        logger.info { "Login event: $event" }
 
-    if(event.password.isNotEmpty() && event.password.length % 2 == 0) {
-      LoginModelWrongPasswordEvent().schedule(entrance)
-      EntranceAlertModelShowAlertEvent(
-        image = gameResourceRepository.get("alert.restrict", emptyMap(), LocalizedImageRes, Eager),
-        header = "Login failed",
-        text = "Wrong password"
-      ).preloadResources().schedule(entrance)
-      return
+        if (event.password.isNotEmpty() && event.password.length % 2 == 0) {
+            LoginModelWrongPasswordEvent().schedule(entrance)
+            EntranceAlertModelShowAlertEvent(
+                image = gameResourceRepository.get("alert.restrict", emptyMap(), LocalizedImageRes, Eager),
+                header = "Login failed",
+                text = "Wrong password"
+            ).preloadResources().schedule(entrance)
+            return
+        }
+
+        // Create a user object and assign it to the session.
+        // The user object is destroyed immediately when the session is closed,
+        // without a grace period like in battles.
+        val id = makeStablePersistentId("GameObject:User:${event.uidOrEmail}")
+        val transientId =
+            makeStableTransientId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
+        // XXX: We need to have a transient ID for the user object because game developers are [stupid].
+        //  They require the tank object to have an ID of user, and considering that we cannot have two
+        //  objects with the same ID in the same space, this makes it impossible to have a user object
+        //  and a tank object in the battle space. This behavior deviates from the official server, which
+        //  somehow uses the same ID for both user and tank objects. A possible solution is to have
+        //  a separate "client ID" for game objects.
+        val userObject = UserTemplate.instantiate(transientId).apply {
+            addComponent(UserGroupComponent(id))
+            addComponent(UsernameComponent(event.uidOrEmail))
+            addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
+            addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
+            addComponent(UserEquipmentComponent())
+            addComponent(LayoutStateComponent(LayoutState.BATTLE_SELECT))
+        }
+        requireSpaceChannel.sessionNotNull.user = userObject
+
+        val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
+        channel.space.objects.add(userObject)
+
+        // Close the entrance space channel to trigger loading screen on the client
+        requireSpaceChannel.close()
     }
-
-    // Create a user object and assign it to the session.
-    // The user object is destroyed immediately when the session is closed,
-    // without a grace period like in battles.
-    val id = makeStablePersistentId("GameObject:User:${event.uidOrEmail}")
-    val transientId = makeStableTransientId("GameObject:User:${event.uidOrEmail}:${Clock.System.now().toEpochMilliseconds()}")
-    // XXX: We need to have a transient ID for the user object because game developers are [stupid].
-    //  They require the tank object to have an ID of user, and considering that we cannot have two
-    //  objects with the same ID in the same space, this makes it impossible to have a user object
-    //  and a tank object in the battle space. This behavior deviates from the official server, which
-    //  somehow uses the same ID for both user and tank objects. A possible solution is to have
-    //  a separate "client ID" for game objects.
-    val userObject = UserTemplate.instantiate(transientId).apply {
-      addComponent(UserGroupComponent(id))
-      addComponent(UsernameComponent(event.uidOrEmail))
-      addComponent(ScoreComponent(Random.nextInt(10_000, 1_000_000).roundToNearest(100)))
-      addComponent(CrystalsComponent(Random.nextInt(100_000, 10_000_000).roundToNearest(100)))
-    }
-    requireSpaceChannel.sessionNotNull.user = userObject
-
-    val channel = DispatcherOpenSpaceEvent(Space.stableId("lobby")).schedule(dispatcher).await()
-    channel.space.objects.add(userObject)
-
-    // Close the entrance space channel to trigger loading screen on the client
-    requireSpaceChannel.close()
-  }
 }

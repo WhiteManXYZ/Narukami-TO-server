@@ -25,30 +25,29 @@ import jp.assasans.narukami.server.net.ISocketClient
 import jp.assasans.narukami.server.net.SpaceChannel
 import jp.assasans.narukami.server.net.session.ISession
 import jp.assasans.narukami.server.protocol.IProtocol
+import jp.assasans.narukami.server.protocol.Protocol
 import jp.assasans.narukami.server.protocol.ProtocolBuffer
+import kotlinx.coroutines.Dispatchers
 
 class FakeSocket(val space: ISpace) : ISocketClient {
-  override val protocol: IProtocol
-    get() = TODO("Not yet implemented")
-  override var kind: IChannelKind
-    get() = SpaceChannel(this, space)
-    set(value) = TODO("Not yet implemented")
-  override var session: ISession?
-    get() = TODO("Not yet implemented")
-    set(value) = TODO("Not yet implemented")
+    override val protocol: IProtocol = Protocol(this)
 
-  override fun process(buffer: ProtocolBuffer) {
-    TODO("Not yet implemented")
-  }
+    override var kind: IChannelKind = SpaceChannel(this, space)
 
-  override fun send(buffer: ProtocolBuffer) {
-    TODO("Not yet implemented")
-  }
+    override var session: ISession? = null
 
-  override suspend fun close() {
-    TODO("Not yet implemented")
-  }
+    override fun process(buffer: ProtocolBuffer) {
 
-  override val coroutineContext: CoroutineContext
-    get() = TODO("Not yet implemented")
+    }
+
+    override fun send(buffer: ProtocolBuffer) {
+
+    }
+
+    override suspend fun close() {
+
+    }
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default
 }

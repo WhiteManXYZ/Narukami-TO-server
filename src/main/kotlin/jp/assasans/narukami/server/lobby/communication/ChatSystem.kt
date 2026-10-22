@@ -19,28 +19,35 @@
 package jp.assasans.narukami.server.lobby.communication
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.koin.java.KoinJavaComponent.inject
 import jp.assasans.narukami.server.NOTICE_SHORT
 import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.entrance.DispatcherNodeV2
 import jp.assasans.narukami.server.lobby.CrystalsComponent
+import jp.assasans.narukami.server.lobby.LayoutState
+import jp.assasans.narukami.server.lobby.LayoutStateComponent
 import jp.assasans.narukami.server.lobby.ScoreComponent
 import jp.assasans.narukami.server.lobby.SessionLogoutEvent
 import jp.assasans.narukami.server.lobby.UsernameComponent
 import jp.assasans.narukami.server.lobby.user.UserTemplate
 import jp.assasans.narukami.server.net.sessionNotNull
+import org.koin.java.KoinJavaComponent.inject
 
 @MatchTemplate(CommunicationTemplate::class)
 class ChatNodeV2 : NodeV2()
 
 @MatchTemplate(UserTemplate::class)
 data class UserNodeV2(
-  val userGroup: UserGroupComponent,
-  val username: UsernameComponent,
-  val score: ScoreComponent,
-  val crystals: CrystalsComponent,
+    val userGroup: UserGroupComponent,
+    val username: UsernameComponent,
+    val score: ScoreComponent,
+    val crystals: CrystalsComponent,
+    val layout: LayoutStateComponent
 ) : NodeV2()
+
+fun UserNodeV2.applyLayoutState(state: LayoutState) {
+    gameObject.getComponent<LayoutStateComponent>().layoutState = state
+}
 
 fun remote(space: ISpace, gameObject: IGameObject, allowUnloaded: Boolean = false): Set<IModelContext> {
   val sessions: ISessionRegistry by inject(ISessionRegistry::class.java)

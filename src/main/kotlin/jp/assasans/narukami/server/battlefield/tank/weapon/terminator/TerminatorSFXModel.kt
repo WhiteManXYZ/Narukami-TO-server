@@ -16,15 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package jp.assasans.narukami.server.battlefield.tank.weapon
+package jp.assasans.narukami.server.battlefield.tank.weapon.terminator
 
 import jp.assasans.narukami.server.core.IModelConstructor
 import jp.assasans.narukami.server.protocol.ProtocolModel
+import jp.assasans.narukami.server.res.Eager
+import jp.assasans.narukami.server.res.Resource
+import jp.assasans.narukami.server.res.SoundRes
 
-@ProtocolModel(2235965200289058033)
-data class SplashModel(
-  val impactForce: Float,
-  val minSplashDamagePercent: Float,
-  val radiusOfMaxSplashDamage: Float,
-  val splashDamageRadius: Float,
+@ProtocolModel(6210980129845088505)
+data class TerminatorSFXModel(
+  val closedSound: Resource<SoundRes, Eager>,
+  val openedSound: Resource<SoundRes, Eager>,
+  val servoSound: Resource<SoundRes, Eager>,
 ) : IModelConstructor

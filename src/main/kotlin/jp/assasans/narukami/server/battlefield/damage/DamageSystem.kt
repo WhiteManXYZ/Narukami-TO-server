@@ -27,81 +27,82 @@ import jp.assasans.narukami.server.net.session.userNotNull
 import jp.assasans.narukami.server.net.sessionNotNull
 
 data class DamageIndicatorNode(
-  val damageIndicator: DamageIndicatorModelCC,
+    val damageIndicator: DamageIndicatorModelCC,
 ) : Node()
 
 @MatchTemplate(TankTemplate::class)
 data class DamageTankNode(
-  val health: HealthComponent,
+    val health: HealthComponent,
 ) : NodeV2()
 
 data class DamageEvent(
-  val source: IGameObject,
-  val amount: Float,
+    val source: IGameObject,
+    val amount: Float,
+    val type: DamageType
 ) : IEvent
 
 data class ShowDamageEvent(
-  val damages: List<TargetTankDamage>,
+    val damages: List<TargetTankDamage>,
 ) : IEvent
 
 class DamageSystem : AbstractSystem() {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  @OnEventFireV2
-  @BattlefieldLogEvent
-  fun damage(
-    context: IModelContext,
-    event: DamageEvent,
-    tank: DamageTankNode,
-  ) = context {
-    require(event.amount >= 0) { "Damage amount must be non-negative, got ${event.amount}" }
+    @OnEventFireV2
+    @BattlefieldLogEvent
+    fun damage(
+        context: IModelContext,
+        event: DamageEvent,
+        tank: DamageTankNode,
+    ) = context {
+        require(event.amount >= 0) { "Damage amount must be non-negative, got ${event.amount}" }
 
-    val tankShared = remote(tank)
+        val tankShared = remote(tank)
 
-    tank.health.health = (tank.health.health - event.amount).coerceIn(0f..tank.health.maxHealth)
-    TankModelSetHealthEvent(tank.health.health).schedule(tank, tankShared)
+        tank.health.health = (tank.health.health - event.amount).coerceIn(0f..tank.health.maxHealth)
+        TankModelSetHealthEvent(tank.health.health).schedule(tank, tankShared)
 
-    if(tank.health.health <= 0) {
-      TankModelKillEvent(event.source.id, 1000, DamageType.ISIS).schedule(tank, tankShared)
+        if (tank.health.health <= 0) {
+            TankModelKillEvent(event.source.id, 1000, event.type).schedule(tank, tankShared)
+        }
+
+        val sourceContexts = remote(event.source)
+        // TODO: There is no API that allows to get an "owner" context of a game object.
+        val sourceContext = sourceContexts.single {
+            it.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UserGroupComponent>() == event.source.getComponent<UserGroupComponent>()
+        }
+        ShowDamageEvent(
+            damages = listOf(
+                TargetTankDamage(
+                    target = tank.gameObject,
+                    damageAmount = event.amount,
+                    damageIndicatorType = if (tank.health.health <= 0) DamageIndicatorType.FATAL else DamageIndicatorType.NORMAL,
+                )
+            )
+        ).schedule(sourceContext, event.source)
     }
 
-    val sourceContexts = remote(event.source)
-    // TODO: There is no API that allows to get an "owner" context of a game object.
-    val sourceContext = sourceContexts.single {
-      it.requireSpaceChannel.sessionNotNull.userNotNull.getComponent<UserGroupComponent>() == event.source.getComponent<UserGroupComponent>()
+    @OnEventFireV2
+    fun showDamage(
+        context: IModelContext,
+        event: ShowDamageEvent,
+        tank: TankNodeV2,
+        @JoinAll battlefield: BattlefieldNodeV2,
+    ) = context {
+        check(event.damages.isNotEmpty()) { "ShowDamageEvent must contain at least one element" }
+
+        DamageIndicatorModelShowDamageForShooterEvent(
+            damages = event.damages
+        ).schedule(battlefield)
     }
-    ShowDamageEvent(
-      damages = listOf(
-        TargetTankDamage(
-          target = tank.gameObject,
-          damageAmount = event.amount,
-          damageIndicatorType = if(tank.health.health <= 0) DamageIndicatorType.FATAL else DamageIndicatorType.NORMAL,
-        )
-      )
-    ).schedule(sourceContext, event.source)
-  }
 
-  @OnEventFireV2
-  fun showDamage(
-    context: IModelContext,
-    event: ShowDamageEvent,
-    tank: TankNodeV2,
-    @JoinAll battlefield: BattlefieldNodeV2,
-  ) = context {
-    check(event.damages.isNotEmpty()) { "ShowDamageEvent must contain at least one element" }
-
-    DamageIndicatorModelShowDamageForShooterEvent(
-      damages = event.damages
-    ).schedule(battlefield)
-  }
-
-  @OnEventFireV2
-  fun deathConfirmation(
-    context: IModelContext,
-    event: TankModelDeathConfirmationCommandEvent,
-    tank: TankNodeV2,
-  ) = context {
-    val tankShared = remote(tank)
-    TankModelDeathConfirmedEvent().schedule(tank, tankShared - context)
-  }
+    @OnEventFireV2
+    fun deathConfirmation(
+        context: IModelContext,
+        event: TankModelDeathConfirmationCommandEvent,
+        tank: TankNodeV2,
+    ) = context {
+        val tankShared = remote(tank)
+        TankModelDeathConfirmedEvent().schedule(tank, tankShared - context)
+    }
 }

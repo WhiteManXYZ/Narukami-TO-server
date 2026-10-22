@@ -20,6 +20,8 @@ package jp.assasans.narukami.server.battlefield.tank.weapon.railgun
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battlefield.TankNodeV2
+import jp.assasans.narukami.server.battlefield.damage.DamageEvent
+import jp.assasans.narukami.server.battlefield.tank.DamageType
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.lobby.communication.remote
@@ -28,40 +30,51 @@ import jp.assasans.narukami.server.lobby.communication.remote
 class RailgunNode : NodeV2()
 
 class RailgunSystem : AbstractSystem() {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  @OnEventFireV2
-  fun startCharging(
-    context: IModelContext,
-    event: RailgunModelStartChargingCommandEvent,
-    railgun: RailgunNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
-  ) = context {
-    val railgunShared = remote(railgun)
+    @OnEventFireV2
+    fun startCharging(
+        context: IModelContext,
+        event: RailgunModelStartChargingCommandEvent,
+        railgun: RailgunNode,
+        @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+    ) = context {
+        val railgunShared = remote(railgun)
 
-    logger.trace { "Start charging: $event" }
+        logger.trace { "Start charging: $event" }
 
-    RailgunModelStartChargingEvent(
-      shooter = tank.gameObject,
-    ).schedule(railgun, railgunShared - context)
-  }
+        RailgunModelStartChargingEvent(
+            shooter = tank.gameObject,
+        ).schedule(railgun, railgunShared - context)
+    }
 
-  @OnEventFireV2
-  fun fireDummy(
-    context: IModelContext,
-    event: RailgunModelFireCommandEvent,
-    railgun: RailgunNode,
-    @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
-  ) = context {
-    val railgunShared = remote(railgun)
+    @OnEventFireV2
+    fun fire(
+        context: IModelContext,
+        event: RailgunModelFireCommandEvent,
+        railgun: RailgunNode,
+        @JoinAll @JoinBy(TankGroupComponent::class) tank: TankNodeV2,
+    ) = context {
+        val railgunShared = remote(railgun)
 
-    logger.trace { "Fire dummy: $event" }
+        logger.trace { "Fire dummy: $event" }
 
-    RailgunModelFireEvent(
-      shooter = tank.gameObject,
-      staticHitPoint = event.staticHitPoint,
-      targets = event.targets,
-      targetHitPoints = event.targetHitPoints,
-    ).schedule(railgun, railgunShared - context)
-  }
+        RailgunModelFireEvent(
+            shooter = tank.gameObject,
+            staticHitPoint = event.staticHitPoint,
+            targets = event.targets,
+            targetHitPoints = event.targetHitPoints,
+        ).schedule(railgun, railgunShared - context)
+
+        if (event.targets != null) {
+
+            for (target in event.targets) {
+                val targetObj = context.space.objects.get(target.id)
+                if (targetObj != null)
+                    DamageEvent(amount = 250f, source = tank.gameObject, type = DamageType.RAILGUN).schedule(context, targetObj)
+                else
+                    logger.warn { "Deal damage to unexisting object" }
+            }
+        }
+    }
 }

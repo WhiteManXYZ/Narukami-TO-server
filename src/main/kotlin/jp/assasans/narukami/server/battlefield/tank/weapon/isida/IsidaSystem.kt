@@ -22,6 +22,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import jp.assasans.narukami.server.battlefield.TankNodeV2
 import jp.assasans.narukami.server.battlefield.Vector3d
 import jp.assasans.narukami.server.battlefield.damage.DamageEvent
+import jp.assasans.narukami.server.battlefield.tank.DamageType
 import jp.assasans.narukami.server.battlefield.tank.TankGroupComponent
 import jp.assasans.narukami.server.battlefield.tank.weapon.TargetHit
 import jp.assasans.narukami.server.core.*
@@ -47,11 +48,11 @@ class IsidaSystem : AbstractSystem() {
     logger.trace { "Tick: $event" }
 
     if(isida.isidaTarget == null) {
-      logger.warn { "Isida target is null, skipping tick" }
+      logger.trace { "Isida target is null, skipping tick" }
       return
     }
 
-    DamageEvent(amount = 30f, source = tank.gameObject).schedule(context, isida.isidaTarget.target)
+    DamageEvent(amount = 30f, source = tank.gameObject, type = DamageType.ISIS).schedule(context, isida.isidaTarget.target)
   }
 
   @OnEventFireV2

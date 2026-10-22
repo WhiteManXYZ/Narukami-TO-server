@@ -19,28 +19,80 @@
 package jp.assasans.narukami.server.battleselect
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jp.assasans.narukami.server.battlefield.BattleMapTemplate
+import jp.assasans.narukami.server.battlefield.BattleUserNode
+import jp.assasans.narukami.server.battlefield.BattlefieldModelCC
+import jp.assasans.narukami.server.battlefield.BattlefieldTemplate
+import jp.assasans.narukami.server.battlefield.UserGroupComponent
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.core.impl.GameObjectIdSource
+import jp.assasans.narukami.server.core.impl.Space
+import jp.assasans.narukami.server.dispatcher.DispatcherLoadObjectsManagedEvent
+import jp.assasans.narukami.server.lobby.UserNode
+import jp.assasans.narukami.server.lobby.communication.remote
+import jp.assasans.narukami.server.net.session.userNotNull
+import jp.assasans.narukami.server.net.sessionNotNull
+import org.koin.core.component.inject
+import kotlin.getValue
 
 class BattleCreateSystem : AbstractSystem() {
-  private val logger = KotlinLogging.logger { }
+    private val logger = KotlinLogging.logger { }
 
-  @OnEventFireV2
-  fun checkName(
-    context: IModelContext,
-    event: BattleCreateModelCheckBattleNameForForbiddenWordsEvent,
-    battleCreate: BattleCreateNodeV2,
-  ) = context {
-    val filteredName = event.battleName.replace("2112", "2019")
-    BattleCreateModelSetFilteredBattleNameEvent(filteredName).schedule(battleCreate)
-  }
+    private val spaces: IRegistry<ISpace> by inject()
 
-  @OnEventFireV2
-  fun create(
-    context: IModelContext,
-    event: BattleCreateModelCreateBattleEvent,
-    battleCreate: BattleCreateNodeV2,
-  ) = context {
-    logger.warn { "Battle creation is not implemented" }
-    BattleCreateModelCreateFailedYouAreBannedEvent().schedule(battleCreate)
-  }
+    @OnEventFireV2
+    fun checkName(
+        context: IModelContext,
+        event: BattleCreateModelCheckBattleNameForForbiddenWordsEvent,
+        battleCreate: BattleCreateNodeV2,
+    ) = context {
+        val filteredName = event.battleName.replace("2112", "2019")
+        BattleCreateModelSetFilteredBattleNameEvent(filteredName).schedule(battleCreate)
+    }
+
+    @OnEventFireV2
+    fun create(
+        context: IModelContext,
+        event: BattleCreateModelCreateBattleEvent,
+        battleCreate: BattleCreateNodeV2,
+    ) = context {
+        // TODO user rank/ban status checking
+
+        val mapInfo = space.objects.get(event.params.mapId)
+        if (mapInfo == null) {
+            logger.warn { "Unknown mapId: ${event.params.mapId}" }
+            return@context
+        }
+
+        val battleId = Space.freeId()
+        // TODO use correct template for selected mode
+        val battleInfoObject = DMBattleInfoTemplate.create(battleId, mapInfo, event.params)
+        battleInfoObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
+
+        spaces.add(Space(battleId).apply {
+            battleInfoObject.addComponent(BattleSpaceComponent(this))
+
+            objects.remove(rootObject)
+
+            val battleMapObject =
+                BattleMapTemplate.instantiate(GameObjectIdSource.transientId("Map:${mapInfo.id}"))
+            battleMapObject.addAllComponents(mapInfo.allComponents.values)
+            battleMapObject.addComponent(BattleInfoGroupComponent(battleInfoObject))
+
+            objects.add(battleMapObject)
+
+            val battlefieldObject = BattlefieldTemplate.create(id, battleMapObject)
+            replaceRootObject(battlefieldObject)
+        })
+
+        val lobbySpace = spaces.get(Space.stableId("lobby"))
+            ?: throw IllegalStateException("Lobby space not found")
+
+        lobbySpace.objects.add(battleInfoObject)
+
+        val lobbyChannel = context.requireSpaceChannel.sessionNotNull.spaces.get(Space.stableId("lobby"))
+            ?: throw IllegalStateException("No lobby channel")
+
+        AddBattleEvent(battleInfoObject).schedule(lobbyChannel, battleInfoObject)
+    }
 }

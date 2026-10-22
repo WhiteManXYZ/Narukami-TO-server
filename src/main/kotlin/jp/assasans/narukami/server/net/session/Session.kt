@@ -19,9 +19,6 @@
 package jp.assasans.narukami.server.net.session
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jp.assasans.narukami.server.client.UserEquipment
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import jp.assasans.narukami.server.core.IGameObject
 import jp.assasans.narukami.server.core.IPending
 import jp.assasans.narukami.server.core.IRegistry
@@ -30,6 +27,8 @@ import jp.assasans.narukami.server.core.impl.Registry
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.net.ControlChannel
 import jp.assasans.narukami.server.net.SpaceChannel
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Session represents a unique client instance connected to the server.

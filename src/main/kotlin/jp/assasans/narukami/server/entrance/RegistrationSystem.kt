@@ -6,6 +6,7 @@ import jp.assasans.narukami.server.core.*
 import jp.assasans.narukami.server.core.impl.Space
 import jp.assasans.narukami.server.dispatcher.DispatcherOpenSpaceEvent
 import jp.assasans.narukami.server.extensions.roundToNearest
+import jp.assasans.narukami.server.garage.UserEquipmentComponent
 import jp.assasans.narukami.server.lobby.CrystalsComponent
 import jp.assasans.narukami.server.lobby.ScoreComponent
 import jp.assasans.narukami.server.lobby.UsernameComponent
@@ -46,6 +47,7 @@ class RegistrationSystem : AbstractSystem(), KoinComponent {
             addComponent(UsernameComponent(event.username))
             addComponent(ScoreComponent(0))
             addComponent(CrystalsComponent(1_500))
+            addComponent(UserEquipmentComponent())
         }
         requireSpaceChannel.sessionNotNull.user = userObject
 

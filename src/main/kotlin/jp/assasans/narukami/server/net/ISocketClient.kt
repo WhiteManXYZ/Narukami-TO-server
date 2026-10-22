@@ -103,7 +103,7 @@ class NettySocketClient(
   override fun send(buffer: ProtocolBuffer) {
     logger.trace { "Queueing outgoing $buffer" }
     sendQueue.trySend(buffer).onFailure {
-      logger.error(it) { "Failed to enqueue outgoing buffer $buffer" }
+      logger.warn(it) { "Failed to enqueue outgoing buffer $buffer" }
     }
   }
 
@@ -131,10 +131,19 @@ class NettySocketClient(
     readerJob.cancelAndJoin()
     writerJob.cancelAndJoin()
 
-    channel.close().suspendAwait()
+      channel.close().suspendAwait()
 
-    // TODO: Wrong place? Probably should make [ISocketKind.close()]
-    if(kind is ControlChannel) session?.close()
+      // Space channel closed from the client side (e.g. garage window closed): unregister it,
+      // otherwise reopening the same space fails with "Space channel with ID ... already exists"
+      (kind as? SpaceChannel)?.let { spaceChannel ->
+          val spaces = session?.spaces
+          if(spaces != null && spaces.get(spaceChannel.space.id) === spaceChannel) {
+              spaces.remove(spaceChannel)
+          }
+      }
+
+      // TODO: Wrong place? Probably should make [ISocketKind.close()]
+      if(kind is ControlChannel) session?.close()
   }
 
   override fun toString(): String {

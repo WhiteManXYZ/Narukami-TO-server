@@ -26,63 +26,93 @@ import jp.assasans.narukami.server.battlefield.asBattleInfoUser
 import jp.assasans.narukami.server.core.*
 
 abstract class BattleInfoTemplate : TemplateV2() {
-  open fun create(id: Long, mapInfo: IGameObject) = gameObject(id).apply {
-    addModel(
-      BattleInfoModelCC(
-        roundStarted = false,
-        suspicionLevel = BattleSuspicionLevel.NONE,
-        timeLeftInSec = 3600,
-      )
-    )
-    addModel(
-      BattleParamInfoModelCC(
-        map = mapInfo,
-        params = BattleCreateParameters(
-          autoBalance = false,
-          battleMode = BattleMode.DM,
-          clanBattle = false,
-          dependentCooldownEnabled = false,
-          equipmentConstraintsMode = null,
-          friendlyFire = false,
-          goldBoxesEnabled = false,
-          limits = BattleLimits(
-            scoreLimit = 999,
-            timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
-          ),
-          mapId = mapInfo.id,
-          maxPeopleCount = 32,
-          name = null,
-          parkourMode = false,
-          privateBattle = false,
-          proBattle = true,
-          rankRange = Range(min = 1, max = 31),
-          reArmorEnabled = true,
-          theme = MapTheme.SUMMER_NIGHT,
-          ultimatesEnabled = false,
-          uniqueUsersBattle = false,
-          withoutBonuses = false,
-          withoutDevices = false,
-          withoutDrones = false,
-          withoutSupplies = false,
-          withoutUpgrades = false,
+    open fun create(id: Long, mapInfo: IGameObject) = gameObject(id).apply {
+        addModel(
+            BattleInfoModelCC(
+                roundStarted = false,
+                suspicionLevel = BattleSuspicionLevel.NONE,
+                timeLeftInSec = 3600,
+            )
         )
-      )
-    )
-    addModel(BattleEntranceModelCC())
-  }
+        addModel(
+            BattleParamInfoModelCC(
+                map = mapInfo,
+                params = BattleCreateParameters(
+                    autoBalance = false,
+                    battleMode = BattleMode.DM,
+                    clanBattle = false,
+                    dependentCooldownEnabled = false,
+                    equipmentConstraintsMode = null,
+                    friendlyFire = false,
+                    goldBoxesEnabled = false,
+                    limits = BattleLimits(
+                        scoreLimit = 999,
+                        timeLimitInSec = (21.minutes + 12.seconds).inWholeSeconds.toInt()
+                    ),
+                    mapId = mapInfo.id,
+                    maxPeopleCount = 32,
+                    name = null,
+                    parkourMode = false,
+                    privateBattle = false,
+                    proBattle = true,
+                    rankRange = Range(min = 1, max = 31),
+                    reArmorEnabled = true,
+                    theme = MapTheme.SUMMER_DAY,
+                    ultimatesEnabled = false,
+                    uniqueUsersBattle = false,
+                    withoutBonuses = false,
+                    withoutDevices = false,
+                    withoutDrones = false,
+                    withoutSupplies = false,
+                    withoutUpgrades = false,
+                )
+            )
+        )
+        addModel(BattleEntranceModelCC())
+    }
+
+    open fun create(id: Long, mapInfo: IGameObject, params: BattleCreateParameters) = gameObject(id).apply {
+        addModel(
+            BattleInfoModelCC(
+                roundStarted = false,
+                suspicionLevel = BattleSuspicionLevel.NONE,
+                timeLeftInSec = 3600,
+            )
+        )
+        addModel(
+            BattleParamInfoModelCC(
+                map = mapInfo,
+                params = params
+            )
+        )
+        addModel(BattleEntranceModelCC())
+    }
 }
 
 object DMBattleInfoTemplate : BattleInfoTemplate() {
-  override fun create(id: Long, mapInfo: IGameObject) = super.create(id, mapInfo).apply {
-    addModel(ClosureModelProvider {
-      val battleUsers = it.getComponent<BattleSpaceComponent>()
-        .space.objects.all
-        .filterHasComponent<BattleUserComponent>()
-        .map { it.adapt<BattleUserNode>() }
-        .filter { it.team != null }
-      BattleDMInfoModelCC(
-        users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
-      )
-    })
-  }
+    override fun create(id: Long, mapInfo: IGameObject) = super.create(id, mapInfo).apply {
+        addModel(ClosureModelProvider {
+            val battleUsers = it.getComponent<BattleSpaceComponent>()
+                .space.objects.all
+                .filterHasComponent<BattleUserComponent>()
+                .map { it.adapt<BattleUserNode>() }
+                .filter { it.team != null }
+            BattleDMInfoModelCC(
+                users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
+            )
+        })
+    }
+
+    override fun create(id: Long, mapInfo: IGameObject, params: BattleCreateParameters) = super.create(id, mapInfo, params).apply {
+        addModel(ClosureModelProvider {
+            val battleUsers = it.getComponent<BattleSpaceComponent>()
+                .space.objects.all
+                .filterHasComponent<BattleUserComponent>()
+                .map { it.adapt<BattleUserNode>() }
+                .filter { it.team != null }
+            BattleDMInfoModelCC(
+                users = battleUsers.map { battleUser -> battleUser.asBattleInfoUser() }
+            )
+        })
+    }
 }

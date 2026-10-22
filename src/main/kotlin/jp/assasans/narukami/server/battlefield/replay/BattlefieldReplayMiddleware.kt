@@ -113,6 +113,7 @@ fun deserializeExternObject(objectMapper: ObjectMapper, src: String, registry: I
   }
 
   val isolatedId = if(isolate) isolateId(id) else id
+    // TODO: not work?
   logger.info { "Isolated ID: $id -> $isolatedId" }
   val gameObject = template.instantiate(isolatedId)
   val wrappedRegistry = FakeGameObjectRegistry(registry, gameObject)

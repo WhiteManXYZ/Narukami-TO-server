@@ -20,8 +20,10 @@ package jp.assasans.narukami.server.lobby.user
 
 import kotlin.time.Duration.Companion.days
 import jp.assasans.narukami.server.core.*
+import jp.assasans.narukami.server.lobby.PanelModelCC
 import jp.assasans.narukami.server.lobby.UserNode
 import jp.assasans.narukami.server.lobby.UsernameComponent
+import jp.assasans.narukami.server.lobby.settings.SettingsWindowModelCC
 import jp.assasans.narukami.server.net.NettySocketClient
 import jp.assasans.narukami.server.net.sessionNotNull
 
@@ -55,5 +57,12 @@ object UserTemplate : PersistentTemplateV2() {
     addModel(ClosureModelProvider { RankNotifierModelCC(rank = 4, userId = it.id) })
     addModel(ClosureModelProvider { ProBattleNotifierModelCC(abonementRemainingTimeInSec = 2112.days.inWholeSeconds.toInt()) })
     addModel(OnlineNotifierModelCC())
+      addModel(
+          UserCountryModelCC(
+              countries = listOf(CountryInfo(countryCode = "RU", countryName = "Russia")),
+              defaultCountryCode = "RU",
+              locationCheckEnabled = false,
+          )
+      )
   }
 }
